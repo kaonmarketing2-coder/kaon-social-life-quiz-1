@@ -162,12 +162,6 @@
   .rank-item.dragging { opacity: 0.35; cursor: grabbing; }
   .rank-item.drag-over { border-color: var(--pink); background: rgba(255,77,141,0.1); }
 
-  .rank-pos {
-    width: 32px; height: 32px;
-    background: linear-gradient(135deg, var(--pink), #c2185b);
-    border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 900; color: white; flex-shrink: 0;
-  }
   .rank-item-label { flex: 1; font-size: 15px; font-weight: 500; line-height: 1.4; }
   .rank-handle { color: rgba(255,255,255,0.2); font-size: 18px; }
 
@@ -288,6 +282,40 @@
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
+
+  .result-case-badge {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    background: rgba(255,209,102,0.12); color: var(--gold);
+    border: 1px solid rgba(255,209,102,0.25); border-radius: 100px;
+    padding: 2px 10px; margin-left: 8px; vertical-align: middle;
+  }
+  /* ===== CAR CASE SELECT ===== */
+  #car-case-select-area {
+    display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px;
+  }
+  .btn-case {
+    display: flex; align-items: center; gap: 16px;
+    background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: 14px; padding: 18px 20px; cursor: pointer;
+    transition: background 0.15s, border-color 0.2s;
+    font-family: 'Noto Sans KR', sans-serif; color: white; text-align: left; width: 100%;
+  }
+  .btn-case:hover { background: rgba(255,77,141,0.1); border-color: rgba(255,77,141,0.45); }
+  .btn-case-icon { font-size: 28px; flex-shrink: 0; }
+  .btn-case-text { font-size: 15px; font-weight: 600; line-height: 1.4; }
+  .car-case-tag {
+    display: inline-block; background: rgba(255,77,141,0.15);
+    border: 1px solid rgba(255,77,141,0.35); color: rgba(255,255,255,0.85);
+    border-radius: 100px; padding: 5px 14px; font-size: 12px; font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .btn-case-change {
+    background: none; border: none; color: rgba(255,255,255,0.35);
+    font-size: 12px; font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; padding: 0; margin-bottom: 20px; display: block;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  .btn-case-change:hover { color: rgba(255,255,255,0.65); }
   .mt-16 { margin-top: 16px; }
   .text-center { text-align: center; }
   @media (max-width: 600px) {
@@ -330,10 +358,10 @@
     </div>
     <div class="progress-bar-wrap">
       <div class="progress-info">
-        <span id="progress-label">문항 1 / 4</span>
+        <span id="progress-label">문항 1 / 5</span>
         <span id="user-label-top"></span>
       </div>
-      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:25%"></div></div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:20%"></div></div>
     </div>
     <div class="card">
       <div class="quiz-q-num" id="q-num">Question 01</div>
@@ -343,14 +371,25 @@
         <div class="diagram-label">📐 상황 도면</div>
         <div id="q-diagram"></div>
       </div>
-      <div class="rank-section">
-        <div class="rank-label">🏆 상석부터 말석 순으로 드래그하여 순서를 정해주세요</div>
-        <ul class="rank-list" id="rank-list"></ul>
+      <!-- 자동차 케이스 배지 -->
+      <div id="car-case-tag" class="car-case-tag" style="display:none"></div>
+      <button id="car-case-change" class="btn-case-change" onclick="changeCar()" style="display:none">← 케이스 변경</button>
+
+      <!-- 케이스 선택 화면 (자동차 문항에서만 표시) -->
+      <div id="car-case-select-area" style="display:none"></div>
+
+      <!-- 일반 퀴즈 영역 -->
+      <div id="quiz-normal-area" style="display:none">
+        <div class="rank-section" id="rank-label-wrap">
+          <div class="rank-label">🏆 상석부터 말석 순으로 드래그하여 순서를 정해주세요</div>
+          <ul class="rank-list" id="rank-list"></ul>
+        </div>
+        <div class="reason-section">
+          <div class="reason-label">✏️ 그렇게 생각한 이유를 적어주세요</div>
+          <textarea id="reason-input" placeholder="예) 출입문에서 가장 멀고 상대방을 잘 볼 수 있는 자리이기 때문입니다..." rows="4"></textarea>
+        </div>
       </div>
-      <div class="reason-section">
-        <div class="reason-label">✏️ 그렇게 생각한 이유를 적어주세요</div>
-        <textarea id="reason-input" placeholder="예) 출입문에서 가장 멀고 상대방을 잘 볼 수 있는 자리이기 때문입니다..." rows="4"></textarea>
-      </div>
+
       <div class="quiz-nav">
         <button class="btn-secondary" id="btn-prev" onclick="prevQ()">← 이전</button>
         <button class="btn-primary" id="btn-next" onclick="nextQ()">다음 →</button>
@@ -368,7 +407,7 @@
       <div class="result-title" id="result-title"></div>
       <div class="score-display">
         <span class="score-num" id="score-num">0</span>
-        <span class="score-denom" id="score-denom">/ 4</span>
+        <span class="score-denom" id="score-denom">/ 5</span>
       </div>
     </div>
     <div class="result-list" id="result-list"></div>
@@ -417,145 +456,296 @@ async function sbSelect() {
 }
 
 // ===== SVG DIAGRAMS =====
-const DIAGRAMS = {
-  elevator: `<svg class="diagram-svg" viewBox="0 0 300 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="30" y="30" width="240" height="200" rx="8" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
-    <rect x="100" y="30" width="45" height="8" rx="2" fill="rgba(255,77,141,0.5)"/>
-    <rect x="155" y="30" width="45" height="8" rx="2" fill="rgba(255,77,141,0.5)"/>
-    <text x="150" y="22" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="12" font-family="Noto Sans KR, sans-serif" font-weight="500">출입구</text>
-    <rect x="45" y="140" width="36" height="70" rx="6" fill="rgba(255,209,102,0.1)" stroke="rgba(255,209,102,0.3)" stroke-width="1.5"/>
-    <circle cx="63" cy="158" r="4" fill="rgba(255,209,102,0.65)"/>
-    <circle cx="63" cy="172" r="4" fill="rgba(255,209,102,0.65)"/>
-    <circle cx="63" cy="186" r="4" fill="rgba(255,209,102,0.65)"/>
-    <text x="63" y="224" text-anchor="middle" fill="rgba(255,209,102,0.65)" font-size="10" font-family="Noto Sans KR, sans-serif">조작버튼</text>
-    <circle cx="120" cy="100" r="30" fill="rgba(255,77,141,0.1)" stroke="rgba(255,77,141,0.36)" stroke-width="1.5"/>
-    <text x="120" y="107" text-anchor="middle" fill="white" font-size="22" font-weight="bold" font-family="Noto Sans KR, sans-serif">③</text>
-    <circle cx="210" cy="100" r="30" fill="rgba(255,77,141,0.1)" stroke="rgba(255,77,141,0.36)" stroke-width="1.5"/>
-    <text x="210" y="107" text-anchor="middle" fill="white" font-size="22" font-weight="bold" font-family="Noto Sans KR, sans-serif">④</text>
-    <circle cx="120" cy="185" r="30" fill="rgba(255,77,141,0.22)" stroke="rgba(255,77,141,0.72)" stroke-width="2.5"/>
-    <text x="120" y="192" text-anchor="middle" fill="white" font-size="22" font-weight="bold" font-family="Noto Sans KR, sans-serif">①</text>
-    <text x="158" y="170" fill="rgba(255,209,102,0.9)" font-size="14" font-family="sans-serif">★</text>
-    <circle cx="210" cy="185" r="30" fill="rgba(255,77,141,0.1)" stroke="rgba(255,77,141,0.36)" stroke-width="1.5"/>
-    <text x="210" y="192" text-anchor="middle" fill="white" font-size="22" font-weight="bold" font-family="Noto Sans KR, sans-serif">②</text>
-  </svg>`,
-
-  meeting: `<svg class="diagram-svg" viewBox="0 0 300 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="20" y="20" width="260" height="220" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
-    <rect x="110" y="20" width="80" height="7" rx="2" fill="rgba(255,77,141,0.5)"/>
-    <text x="150" y="14" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="12" font-family="Noto Sans KR, sans-serif" font-weight="500">출입구</text>
-    <rect x="80" y="60" width="140" height="18" rx="4" fill="rgba(255,255,255,0.09)" stroke="rgba(255,255,255,0.17)" stroke-width="1.5"/>
-    <rect x="80" y="60" width="18" height="110" rx="4" fill="rgba(255,255,255,0.09)" stroke="rgba(255,255,255,0.17)" stroke-width="1.5"/>
-    <rect x="202" y="60" width="18" height="110" rx="4" fill="rgba(255,255,255,0.09)" stroke="rgba(255,255,255,0.17)" stroke-width="1.5"/>
-    <circle cx="150" cy="210" r="26" fill="rgba(255,77,141,0.22)" stroke="rgba(255,77,141,0.72)" stroke-width="2.5"/>
-    <text x="150" y="217" text-anchor="middle" fill="white" font-size="20" font-weight="bold" font-family="Noto Sans KR, sans-serif">①</text>
-    <text x="177" y="200" fill="rgba(255,209,102,0.9)" font-size="14" font-family="sans-serif">★</text>
-    <circle cx="60" cy="130" r="26" fill="rgba(255,77,141,0.1)" stroke="rgba(255,77,141,0.34)" stroke-width="1.5"/>
-    <text x="60" y="137" text-anchor="middle" fill="white" font-size="20" font-weight="bold" font-family="Noto Sans KR, sans-serif">②</text>
-    <circle cx="240" cy="130" r="26" fill="rgba(255,77,141,0.1)" stroke="rgba(255,77,141,0.34)" stroke-width="1.5"/>
-    <text x="240" y="137" text-anchor="middle" fill="white" font-size="20" font-weight="bold" font-family="Noto Sans KR, sans-serif">③</text>
-    <circle cx="150" cy="45" r="20" fill="rgba(255,77,141,0.06)" stroke="rgba(255,77,141,0.2)" stroke-width="1.5"/>
-    <text x="150" y="52" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="18" font-weight="bold" font-family="Noto Sans KR, sans-serif">④</text>
-  </svg>`,
-
-  car: `<svg class="diagram-svg" viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="30" y="20" width="240" height="160" rx="20" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
-    <line x1="30" y1="100" x2="270" y2="100" stroke="rgba(255,255,255,0.07)" stroke-width="1.5" stroke-dasharray="6,4"/>
-    <circle cx="80" cy="65" r="22" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.17)" stroke-width="2"/>
-    <circle cx="80" cy="65" r="8" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.26)" stroke-width="1.5"/>
-    <line x1="80" y1="43" x2="80" y2="57" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-    <line x1="80" y1="73" x2="80" y2="87" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-    <text x="80" y="95" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-size="10" font-family="Noto Sans KR, sans-serif" font-weight="500">운전기사</text>
-    <circle cx="80" cy="155" r="28" fill="rgba(255,77,141,0.22)" stroke="rgba(255,77,141,0.68)" stroke-width="2.5"/>
-    <text x="80" y="162" text-anchor="middle" fill="white" font-size="20" font-weight="bold" font-family="Noto Sans KR, sans-serif">①</text>
-    <text x="108" y="143" fill="rgba(255,209,102,0.9)" font-size="14" font-family="sans-serif">★</text>
-    <circle cx="165" cy="155" r="25" fill="rgba(255,77,141,0.09)" stroke="rgba(255,77,141,0.3)" stroke-width="1.5"/>
-    <text x="165" y="162" text-anchor="middle" fill="white" font-size="20" font-weight="bold" font-family="Noto Sans KR, sans-serif">③</text>
-    <circle cx="240" cy="155" r="25" fill="rgba(255,77,141,0.1)" stroke="rgba(255,77,141,0.34)" stroke-width="1.5"/>
-    <text x="240" y="162" text-anchor="middle" fill="white" font-size="20" font-weight="bold" font-family="Noto Sans KR, sans-serif">②</text>
-    <polygon points="150,12 143,24 157,24" fill="rgba(6,214,160,0.55)"/>
-    <text x="150" y="10" text-anchor="middle" fill="rgba(6,214,160,0.55)" font-size="10" font-family="Noto Sans KR, sans-serif" font-weight="500">진행방향</text>
-  </svg>`,
-
-  dining: `<svg class="diagram-svg" viewBox="0 0 340 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- room -->
-    <rect x="10" y="10" width="320" height="280" rx="10" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
-    <!-- window / view side (top) -->
-    <rect x="80" y="10" width="180" height="6" rx="2" fill="rgba(6,214,160,0.45)"/>
-    <text x="170" y="8" text-anchor="middle" fill="rgba(6,214,160,0.65)" font-size="11" font-family="Noto Sans KR, sans-serif" font-weight="500">창문 (경치)</text>
-    <!-- entrance (bottom) -->
-    <rect x="120" y="284" width="100" height="6" rx="2" fill="rgba(255,77,141,0.5)"/>
-    <text x="170" y="300" text-anchor="middle" fill="rgba(255,77,141,0.7)" font-size="11" font-family="Noto Sans KR, sans-serif" font-weight="500">출입구</text>
-    <!-- wall (left) -->
-    <rect x="10" y="80" width="6" height="140" rx="2" fill="rgba(255,255,255,0.15)"/>
-    <!-- rectangular table -->
-    <rect x="95" y="90" width="150" height="120" rx="10" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
-    <!-- wood grain lines -->
-    <line x1="110" y1="90" x2="110" y2="210" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-    <line x1="130" y1="90" x2="130" y2="210" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-    <line x1="150" y1="90" x2="150" y2="210" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-    <line x1="170" y1="90" x2="170" y2="210" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-    <line x1="190" y1="90" x2="190" y2="210" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-    <line x1="210" y1="90" x2="210" y2="210" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-    <line x1="230" y1="90" x2="230" y2="210" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-
-    <!-- ① 창가·벽 쪽 안쪽 상석 (top-left, near window AND wall) -->
-    <circle cx="75" cy="55" r="28" fill="rgba(255,77,141,0.22)" stroke="rgba(255,77,141,0.72)" stroke-width="2.5"/>
-    <text x="75" y="62" text-anchor="middle" fill="white" font-size="20" font-weight="bold" font-family="Noto Sans KR, sans-serif">①</text>
-    <text x="103" y="43" fill="rgba(255,209,102,0.9)" font-size="14" font-family="sans-serif">★</text>
-
-    <!-- ② 창가·안쪽 (top-right) -->
-    <circle cx="265" cy="55" r="28" fill="rgba(255,77,141,0.12)" stroke="rgba(255,77,141,0.38)" stroke-width="1.5"/>
-    <text x="265" y="62" text-anchor="middle" fill="white" font-size="20" font-weight="bold" font-family="Noto Sans KR, sans-serif">②</text>
-
-    <!-- ③ 벽 쪽·아랫자리 (bottom-left, near wall, back to entrance) -->
-    <circle cx="75" cy="245" r="28" fill="rgba(255,77,141,0.1)" stroke="rgba(255,77,141,0.32)" stroke-width="1.5"/>
-    <text x="75" y="252" text-anchor="middle" fill="white" font-size="20" font-weight="bold" font-family="Noto Sans KR, sans-serif">③</text>
-
-    <!-- ④ 출입구 쪽 (bottom-right, near entrance, faces wall) -->
-    <circle cx="265" cy="245" r="28" fill="rgba(255,77,141,0.07)" stroke="rgba(255,77,141,0.22)" stroke-width="1.5"/>
-    <text x="265" y="252" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="20" font-weight="bold" font-family="Noto Sans KR, sans-serif">④</text>
-
-    <!-- labels -->
-    <text x="170" y="155" text-anchor="middle" fill="rgba(255,255,255,0.18)" font-size="12" font-family="Noto Sans KR, sans-serif" font-weight="500">테이블</text>
-  </svg>`
+// 모든 좌석: 알파벳 A/B/C/D 표기, 균일한 회색 스타일 (정답 힌트 없음)
+const SEAT_STYLE = {
+  fill: 'rgba(255,255,255,0.06)',
+  stroke: 'rgba(255,255,255,0.22)',
+  textFill: 'rgba(255,255,255,0.85)',
+  labelFill: 'rgba(255,255,255,0.5)'
 };
 
+const DIAGRAMS = {
+
+  // ── 엘리베이터 ──────────────────────────────────────────────────────────────
+  elevator: `<svg class="diagram-svg" viewBox="0 0 300 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- 엘리베이터 박스 -->
+    <rect x="15" y="28" width="270" height="240" rx="10"
+      fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.14)" stroke-width="2"/>
+    <!-- 출입구 (상단) -->
+    <rect x="105" y="28" width="40" height="7" rx="2" fill="rgba(255,77,141,0.55)"/>
+    <rect x="155" y="28" width="40" height="7" rx="2" fill="rgba(255,77,141,0.55)"/>
+    <text x="150" y="21" text-anchor="middle" fill="rgba(255,255,255,0.5)"
+      font-size="11" font-family="Noto Sans KR,sans-serif" font-weight="500">출입구</text>
+    <!-- 조작버튼 패널 (좌측) -->
+    <rect x="27" y="186" width="28" height="56" rx="5"
+      fill="rgba(255,209,102,0.09)" stroke="rgba(255,209,102,0.32)" stroke-width="1.5"/>
+    <circle cx="41" cy="200" r="3" fill="rgba(255,209,102,0.65)"/>
+    <circle cx="41" cy="212" r="3" fill="rgba(255,209,102,0.65)"/>
+    <circle cx="41" cy="224" r="3" fill="rgba(255,209,102,0.65)"/>
+    <text x="41" y="253" text-anchor="middle" fill="rgba(255,209,102,0.55)"
+      font-size="9" font-family="Noto Sans KR,sans-serif">조작버튼</text>
+    <!-- A: 우측 하단 (조작버튼 대각선 안쪽) -->
+    <rect x="175" y="178" width="90" height="72" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="220" y="208" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">A</text>
+    <!-- B: 우측 상단 (조작버튼 대각선 앞) -->
+    <rect x="175" y="52" width="90" height="72" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="220" y="82" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">B</text>
+    <!-- C: 좌측 상단 (출입구 대각선 맞은편) -->
+    <rect x="68" y="52" width="90" height="72" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="113" y="82" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">C</text>
+    <!-- D: 좌측 하단 (조작버튼 바로 옆) -->
+    <rect x="68" y="178" width="90" height="72" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="113" y="208" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">D</text>
+  </svg>`,
+
+  // ── 회의실 ㄷ자 ─────────────────────────────────────────────────────────────
+  meeting: `<svg class="diagram-svg" viewBox="0 0 300 290" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- 방 테두리 -->
+    <rect x="12" y="22" width="276" height="256" rx="10"
+      fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
+    <!-- 출입구 (상단) -->
+    <rect x="112" y="22" width="76" height="7" rx="2" fill="rgba(255,77,141,0.55)"/>
+    <text x="150" y="16" text-anchor="middle" fill="rgba(255,255,255,0.5)"
+      font-size="11" font-family="Noto Sans KR,sans-serif" font-weight="500">출입구</text>
+    <!-- ㄷ자 테이블 -->
+    <rect x="78" y="72" width="144" height="18" rx="4"
+      fill="rgba(255,255,255,0.09)" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/>
+    <rect x="78" y="72" width="18" height="118" rx="4"
+      fill="rgba(255,255,255,0.09)" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/>
+    <rect x="204" y="72" width="18" height="118" rx="4"
+      fill="rgba(255,255,255,0.09)" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/>
+    <!-- A: 하단 중앙 (출입구 맞은편 안쪽) -->
+    <rect x="100" y="238" width="100" height="32" rx="9"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="150" y="259" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="17" font-weight="800" font-family="sans-serif">A</text>
+    <!-- B: 좌측 중앙 -->
+    <rect x="20" y="108" width="48" height="42" rx="9"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="44" y="134" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="17" font-weight="800" font-family="sans-serif">B</text>
+    <!-- C: 우측 중앙 -->
+    <rect x="232" y="108" width="48" height="42" rx="9"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="256" y="134" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="17" font-weight="800" font-family="sans-serif">C</text>
+    <!-- D: 상단 (출입구 가까운 자리) -->
+    <rect x="108" y="32" width="84" height="32" rx="9"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="150" y="53" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="17" font-weight="800" font-family="sans-serif">D</text>
+  </svg>`,
+
+  // ── 자동차: 운전기사 케이스 (조수석 포함, 총 4자리) ──────────────────────────
+  car_driver: `<svg class="diagram-svg" viewBox="0 0 300 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="18" y="18" width="264" height="214" rx="22"
+      fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+    <line x1="18" y1="118" x2="282" y2="118"
+      stroke="rgba(255,255,255,0.08)" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <!-- 진행방향 -->
+    <polygon points="150,6 142,18 158,18" fill="rgba(6,214,160,0.6)"/>
+    <text x="150" y="5" text-anchor="middle" fill="rgba(6,214,160,0.6)"
+      font-size="9" font-family="Noto Sans KR,sans-serif" font-weight="500">진행방향</text>
+    <!-- 운전석 핸들 -->
+    <circle cx="72" cy="72" r="20" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.17)" stroke-width="2"/>
+    <circle cx="72" cy="72" r="7"  fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.24)" stroke-width="1.5"/>
+    <line x1="72" y1="52" x2="72" y2="65" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+    <line x1="72" y1="79" x2="72" y2="92" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+    <text x="72" y="107" text-anchor="middle" fill="rgba(255,255,255,0.32)"
+      font-size="9" font-family="Noto Sans KR,sans-serif">운전기사</text>
+    <!-- A: 조수석 (앞 오른쪽) -->
+    <rect x="186" y="36" width="78" height="66" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="225" y="65" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">A</text>
+    <text x="225" y="82" text-anchor="middle" fill="rgba(255,255,255,0.38)"
+      font-size="9" font-family="Noto Sans KR,sans-serif">조수석</text>
+    <!-- B: 뒤 오른쪽 (운전자 대각선) -->
+    <rect x="186" y="136" width="78" height="72" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="225" y="168" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">B</text>
+    <text x="225" y="184" text-anchor="middle" fill="rgba(255,255,255,0.38)"
+      font-size="9" font-family="Noto Sans KR,sans-serif">뒤 오른쪽</text>
+    <!-- C: 뒤 왼쪽 (운전자 바로 뒤) -->
+    <rect x="36" y="136" width="78" height="72" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="75" y="168" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">C</text>
+    <text x="75" y="184" text-anchor="middle" fill="rgba(255,255,255,0.38)"
+      font-size="9" font-family="Noto Sans KR,sans-serif">뒤 왼쪽</text>
+    <!-- D: 뒤 가운데 -->
+    <rect x="120" y="136" width="60" height="72" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="150" y="168" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">D</text>
+    <text x="150" y="184" text-anchor="middle" fill="rgba(255,255,255,0.38)"
+      font-size="9" font-family="Noto Sans KR,sans-serif">뒤 가운데</text>
+  </svg>`,
+
+  // ── 자동차: 상급자 직접 운전 (4자리) ─────────────────────────────────────────
+  car_self: `<svg class="diagram-svg" viewBox="0 0 300 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="18" y="18" width="264" height="214" rx="22"
+      fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+    <line x1="18" y1="118" x2="282" y2="118"
+      stroke="rgba(255,255,255,0.08)" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <!-- 진행방향 -->
+    <polygon points="150,6 142,18 158,18" fill="rgba(6,214,160,0.6)"/>
+    <text x="150" y="5" text-anchor="middle" fill="rgba(6,214,160,0.6)"
+      font-size="9" font-family="Noto Sans KR,sans-serif" font-weight="500">진행방향</text>
+    <!-- 상급자 핸들 -->
+    <circle cx="72" cy="72" r="20" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.17)" stroke-width="2"/>
+    <circle cx="72" cy="72" r="7"  fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.24)" stroke-width="1.5"/>
+    <line x1="72" y1="52" x2="72" y2="65" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+    <line x1="72" y1="79" x2="72" y2="92" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+    <text x="72" y="107" text-anchor="middle" fill="rgba(255,255,255,0.32)"
+      font-size="9" font-family="Noto Sans KR,sans-serif">상급자(운전)</text>
+    <!-- A: 조수석 (앞 오른쪽) -->
+    <rect x="186" y="36" width="78" height="66" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="225" y="65" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">A</text>
+    <text x="225" y="82" text-anchor="middle" fill="rgba(255,255,255,0.38)"
+      font-size="9" font-family="Noto Sans KR,sans-serif">조수석</text>
+    <!-- B: 뒤 오른쪽 -->
+    <rect x="186" y="136" width="78" height="72" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="225" y="168" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">B</text>
+    <text x="225" y="184" text-anchor="middle" fill="rgba(255,255,255,0.38)"
+      font-size="9" font-family="Noto Sans KR,sans-serif">뒤 오른쪽</text>
+    <!-- C: 뒤 왼쪽 -->
+    <rect x="36" y="136" width="78" height="72" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="75" y="168" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">C</text>
+    <text x="75" y="184" text-anchor="middle" fill="rgba(255,255,255,0.38)"
+      font-size="9" font-family="Noto Sans KR,sans-serif">뒤 왼쪽</text>
+    <!-- D: 뒤 가운데 -->
+    <rect x="120" y="136" width="60" height="72" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="150" y="168" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">D</text>
+    <text x="150" y="184" text-anchor="middle" fill="rgba(255,255,255,0.38)"
+      font-size="9" font-family="Noto Sans KR,sans-serif">뒤 가운데</text>
+  </svg>`,
+
+  // ── 레스토랑 ────────────────────────────────────────────────────────────────
+  // 좌석: 테이블 각 변 중앙, 출입구 하단, 창문 상단
+  dining: `<svg class="diagram-svg" viewBox="0 0 300 310" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="10" y="20" width="280" height="270" rx="10"
+      fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
+    <!-- 창문 (상단) -->
+    <rect x="75" y="20" width="150" height="6" rx="2" fill="rgba(6,214,160,0.5)"/>
+    <text x="150" y="15" text-anchor="middle" fill="rgba(6,214,160,0.7)"
+      font-size="11" font-family="Noto Sans KR,sans-serif" font-weight="500">창문 (경치)</text>
+    <!-- 출입구 (하단) -->
+    <rect x="105" y="284" width="90" height="6" rx="2" fill="rgba(255,77,141,0.55)"/>
+    <text x="150" y="299" text-anchor="middle" fill="rgba(255,77,141,0.75)"
+      font-size="11" font-family="Noto Sans KR,sans-serif" font-weight="500">출입구</text>
+    <!-- 테이블 (중앙) -->
+    <rect x="82" y="96" width="136" height="108" rx="10"
+      fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
+    <text x="150" y="153" text-anchor="middle" fill="rgba(255,255,255,0.13)"
+      font-size="11" font-family="Noto Sans KR,sans-serif">테이블</text>
+    <!-- A: 상단 중앙 (창가 쪽, 출입구 등짐) -->
+    <rect x="108" y="34" width="84" height="48" rx="9"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="150" y="63" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">A</text>
+    <!-- B: 우측 중앙 -->
+    <rect x="232" y="112" width="50" height="76" rx="9"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="257" y="154" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">B</text>
+    <!-- C: 좌측 중앙 -->
+    <rect x="18" y="112" width="50" height="76" rx="9"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="43" y="154" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">C</text>
+    <!-- D: 하단 중앙 (출입구 가까운, 경치 등짐) -->
+    <rect x="108" y="218" width="84" height="48" rx="9"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="150" y="247" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="20" font-weight="800" font-family="sans-serif">D</text>
+  </svg>`
+};
 // ===== QUESTIONS =====
 const QUESTIONS = [
   {
     id: 'elevator', title: '엘리베이터 상석 예절',
-    desc: '엘리베이터를 타고 문을 바라보며 섰을 때, ①②③④ 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요.',
-    seats: ['① 조작버튼 대각선 안쪽', '② 조작버튼 바로 옆', '③ 출입구 대각선 맞은편', '④ 출입구 바로 옆'],
-    correctOrder: [0, 2, 3, 1],
-    explanation: '엘리베이터를 타고 문을 바라보았을 때 조작 버튼의 대각선 안쪽(①)이 상석입니다. 출입구에서 가장 멀고 조작 버튼을 등지고 설 수 있어 가장 안정적인 자리입니다. 조작 버튼 바로 옆(②)은 버튼을 눌러야 하는 역할이므로 말석입니다.',
+    desc: '엘리베이터를 타고 문을 바라보며 섰을 때, 아래 A~D 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요.',
+    seats: [
+      'A – 조작버튼 대각선 안쪽',
+      'B – 조작버튼 대각선 앞',
+      'C – 출입구 대각선 맞은편',
+      'D – 조작버튼 바로 옆'
+    ],
+    correctOrder: [0, 1, 2, 3],
+    explanation: '조작 버튼의 대각선 안쪽(A)이 상석입니다. 출입구에서 가장 멀고 조작 버튼을 등질 수 있어 안정적입니다. 조작 버튼 바로 옆(D)은 버튼을 눌러야 하는 역할이므로 말석입니다.',
     diagramId: 'elevator'
   },
   {
     id: 'meeting', title: '회의실 상석 예절 (ㄷ자 테이블)',
-    desc: 'ㄷ자 형태 회의 테이블에서 ①②③④ 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요.',
-    seats: ['① 출입문 맞은편 중앙 (안쪽 정면)', '② 테이블 왼쪽 안쪽', '③ 테이블 오른쪽 안쪽', '④ 출입구 가까운 자리'],
+    desc: 'ㄷ자 형태 회의 테이블에서 아래 A~D 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요.',
+    seats: [
+      'A – 출입구 맞은편 안쪽',
+      'B – 테이블 왼쪽 안쪽',
+      'C – 테이블 오른쪽 안쪽',
+      'D – 출입구 가까운 자리'
+    ],
     correctOrder: [0, 1, 2, 3],
-    explanation: '출입문과 가장 멀고 출입문을 정면으로 바라볼 수 있는 자리(①)가 상석입니다. 발표·보고 목적이면 스크린이 잘 보이는 자리가 상석이 되기도 합니다. 외부 손님이 있을 경우 상석을 양보하는 것이 매너입니다.',
+    explanation: '출입문과 가장 멀고 출입문을 정면으로 바라볼 수 있는 자리(A)가 상석입니다. 발표·보고 목적이면 스크린이 잘 보이는 자리가 상석이 되기도 합니다. 외부 손님이 있을 경우 상석을 양보하는 것이 매너입니다.',
     diagramId: 'meeting'
   },
   {
-    id: 'car', title: '자동차 상석 예절 (운전기사 있는 경우)',
-    desc: '운전기사가 있는 차량(택시 등)에서 ①②③ 자리를 상석(1위)부터 말석(3위)까지 순서대로 나열해 주세요.',
-    seats: ['① 운전석 대각선 뒷자리 (뒤 왼쪽)', '② 조수석 대각선 뒷자리 (뒤 오른쪽)', '③ 뒷자리 가운데'],
-    correctOrder: [0, 1, 2],
-    explanation: '운전기사가 있을 때 상석은 운전석 대각선 뒷자리(①)입니다. 가장 넓고 안전하며 하차 시 보도 쪽으로 내릴 수 있습니다. 조수석 뒷자리(②)가 2석, 뒷자리 가운데(③)가 말석입니다. 차에 타기 전 상사에게 선호 자리를 미리 확인하는 것이 좋습니다.',
-    diagramId: 'car'
+    id: 'car_driver', title: '자동차 상석 예절 — 🚕 운전기사가 있는 경우',
+    desc: '운전기사가 있는 차량(택시 등)에서 A~D 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요.',
+    seats: [
+      'A – 조수석 (앞 오른쪽)',
+      'B – 운전자 대각선 (뒤 오른쪽)',
+      'C – 운전자 뒤 (뒤 왼쪽)',
+      'D – 뒷자리 가운데'
+    ],
+    correctOrder: [1, 2, 0, 3],
+    explanation: '운전기사가 있을 때 상석은 운전석 대각선 뒷자리(B, 뒤 오른쪽)입니다. 하차 시 보도 쪽으로 내릴 수 있어 안전합니다. 조수석(A)은 운전기사와 대화·길 안내 역할로 3석, 뒷자리 가운데(D)가 말석입니다.',
+    diagramId: 'car_driver'
+  },
+  {
+    id: 'car_self', title: '자동차 상석 예절 — 🚗 상급자가 직접 운전하는 경우',
+    desc: '상급자가 직접 운전하는 차량에서 A~D 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요.',
+    seats: [
+      'A – 조수석 (앞 오른쪽)',
+      'B – 뒷자리 오른쪽',
+      'C – 뒷자리 왼쪽',
+      'D – 뒷자리 가운데'
+    ],
+    correctOrder: [0, 1, 2, 3],
+    explanation: '상급자가 직접 운전할 때는 조수석(A)이 상석입니다. 상급자와 가장 가까운 자리로 동행의 의미가 있습니다. 뒷자리 가운데(D)가 말석입니다. 탑승 전 상급자에게 선호 자리를 먼저 여쭤보는 것이 좋습니다.',
+    diagramId: 'car_self'
   },
   {
     id: 'dining', title: '식사 자리 상석 예절 (레스토랑)',
-    desc: '레스토랑 사각 테이블에서 ①②③④ 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요. 테이블 상단에 창문(경치)이, 하단에 출입구가 있습니다.',
-    seats: ['① 창가·벽 쪽 안쪽 (출입구 등지고 경치 봄)', '② 창가·안쪽 (출입구 등지고 경치 봄)', '③ 벽 쪽·출입구 방향 (경치 등짐)', '④ 출입구 바로 옆 (경치 등짐)'],
+    desc: '레스토랑 사각 테이블에서 A~D 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요. 상단에 창문(경치), 하단에 출입구가 있습니다.',
+    seats: [
+      'A – 창가 쪽 상단 (출입구 등지고 경치 바라봄)',
+      'B – 오른쪽 옆자리',
+      'C – 왼쪽 옆자리',
+      'D – 출입구 쪽 하단 (경치 등짐)'
+    ],
     correctOrder: [0, 1, 2, 3],
-    explanation: '레스토랑 상석은 출입구에서 멀고 경치(창가)가 보이는 자리입니다. 등을 벽에 기댈 수 있어 안정감이 있는 ①이 최상석입니다. 출입구나 주방이 가깝고 통행이 많은 자리(④)는 말석입니다. 손님이나 상급자를 먼저 상석으로 안내하는 것이 기본 매너입니다.',
+    explanation: '레스토랑 상석은 출입구를 등지고 경치(창가)를 바라볼 수 있는 안쪽 자리(A)입니다. 출입구에서 가장 멀어 통행 방해가 없고, 창가 경치를 즐길 수 있습니다. 출입구 가까운 자리(D)는 통행이 잦아 말석입니다.',
     diagramId: 'dining'
   }
 ];
-
 // ===== STATE =====
 let userName = '', currentQ = 0, answers = [], dragSrc = null, touchDragSrc = null;
 
@@ -594,6 +784,10 @@ function renderQ() {
   document.getElementById('q-title').textContent = q.title;
   document.getElementById('q-desc').textContent = q.desc;
   document.getElementById('q-diagram').innerHTML = DIAGRAMS[q.diagramId];
+  document.getElementById('quiz-normal-area').style.display = 'block';
+  document.getElementById('car-case-select-area').style.display = 'none';
+  document.getElementById('car-case-tag').style.display = 'none';
+  document.getElementById('car-case-change').style.display = 'none';
   renderRankList();
   document.getElementById('reason-input').value = answers[currentQ].reason;
   document.getElementById('btn-prev').style.visibility = currentQ === 0 ? 'hidden' : 'visible';
@@ -607,7 +801,7 @@ function renderRankList() {
   order.forEach((seatIdx, pos) => {
     const li = document.createElement('li');
     li.className = 'rank-item'; li.draggable = true; li.dataset.pos = pos;
-    li.innerHTML = `<div class="rank-pos">${pos+1}</div><div class="rank-item-label">${q.seats[seatIdx]}</div><div class="rank-handle">⠿</div>`;
+    li.innerHTML = `<div class="rank-item-label">${q.seats[seatIdx]}</div><div class="rank-handle">⠿</div>`;
     li.addEventListener('dragstart', e => { dragSrc = pos; setTimeout(() => li.classList.add('dragging'), 0); e.dataTransfer.effectAllowed = 'move'; });
     li.addEventListener('dragend', () => li.classList.remove('dragging'));
     li.addEventListener('dragover', e => { e.preventDefault(); li.classList.add('drag-over'); });
@@ -652,7 +846,8 @@ function nextQ() {
 
 // ===== SUBMIT =====
 function calcScore() {
-  return QUESTIONS.reduce((s, q, i) => s + (JSON.stringify(answers[i].order) === JSON.stringify(q.correctOrder) ? 1 : 0), 0);
+  return QUESTIONS.reduce((s, q, i) =>
+    s + (JSON.stringify(answers[i].order) === JSON.stringify(q.correctOrder) ? 1 : 0), 0);
 }
 
 async function submitQuiz() {
@@ -661,11 +856,12 @@ async function submitQuiz() {
   try {
     const total = QUESTIONS.length;
     const payload = { name: userName, score: calcScore(), total };
+    // q1~q5 (문항 5개로 늘어남)
     QUESTIONS.forEach((q, i) => {
-      const key = `q${i+1}`;
-      payload[`${key}_user_order`] = answers[i].order.map(si => q.seats[si]).join(' → ');
-      payload[`${key}_correct`] = JSON.stringify(answers[i].order) === JSON.stringify(q.correctOrder);
-      payload[`${key}_reason`] = answers[i].reason;
+      const k = `q${i+1}`;
+      payload[`${k}_user_order`] = answers[i].order.map(si => q.seats[si]).join(' → ');
+      payload[`${k}_correct`]    = JSON.stringify(answers[i].order) === JSON.stringify(q.correctOrder);
+      payload[`${k}_reason`]     = answers[i].reason;
     });
     await sbInsert(payload);
   } catch(err) {
@@ -680,8 +876,8 @@ async function submitQuiz() {
 // ===== RESULT =====
 function renderResult() {
   const score = calcScore(), total = QUESTIONS.length;
-  const emojis = ['😅','🤔','🤔','👍','🏆'];
-  const titles = ['더 공부해봐요!','조금 더 익혀봐요!','반은 알고 있어요!','거의 다 맞았어요!','완벽해요! 사회생활 고수!'];
+  const emojis = ['😅','😅','🤔','🤔','👍','🏆'];
+  const titles  = ['더 공부해봐요!','조금 더 익혀봐요!','반은 알고 있어요!','거의 다 맞았어요!','잘 알고 있어요!','완벽해요! 사회생활 고수!'];
   document.getElementById('result-emoji').textContent = emojis[score] || '😊';
   document.getElementById('result-title').textContent = titles[score] || '수고했어요!';
   document.getElementById('result-name-display').textContent = `👤 ${userName}`;
@@ -703,12 +899,12 @@ function renderResult() {
         <div class="answer-box user-ans">
           <div class="answer-box-label">내 답변</div>
           <div class="rank-sequence">${answers[i].order.map((si, pi) =>
-            `${pi > 0 ? '<span class="rank-seq-arrow">→</span>' : ''}<span class="rank-seq-item">${pi+1}석: ${q.seats[si].split(' ')[0]}</span>`).join('')}</div>
+            `${pi > 0 ? '<span class="rank-seq-arrow">→</span>' : ''}<span class="rank-seq-item">${pi+1}위: ${q.seats[si]}</span>`).join('')}</div>
         </div>
         <div class="answer-box correct-ans">
           <div class="answer-box-label">정답</div>
           <div class="rank-sequence">${q.correctOrder.map((si, pi) =>
-            `${pi > 0 ? '<span class="rank-seq-arrow" style="color:rgba(6,214,160,0.36)">→</span>' : ''}<span class="rank-seq-item">${pi+1}석: ${q.seats[si].split(' ')[0]}</span>`).join('')}</div>
+            `${pi > 0 ? '<span class="rank-seq-arrow" style="color:rgba(6,214,160,0.36)">→</span>' : ''}<span class="rank-seq-item">${pi+1}위: ${q.seats[si]}</span>`).join('')}</div>
         </div>
       </div>
       <div>
@@ -732,17 +928,19 @@ async function adminDownload() {
     if (!results.length) { msg.textContent = '저장된 데이터가 없습니다.'; msg.className = 'admin-msg error'; return; }
     const headers = [
       '이름','제출시간','점수','총문항',
-      '문항1-답변','문항1-정답여부','문항1-이유',
-      '문항2-답변','문항2-정답여부','문항2-이유',
-      '문항3-답변','문항3-정답여부','문항3-이유',
-      '문항4-답변','문항4-정답여부','문항4-이유'
+      '문항1(엘리베이터)-답변','문항1-정답여부','문항1-이유',
+      '문항2(회의실)-답변','문항2-정답여부','문항2-이유',
+      '문항3(차-운전기사)-답변','문항3-정답여부','문항3-이유',
+      '문항4(차-직접운전)-답변','문항4-정답여부','문항4-이유',
+      '문항5(레스토랑)-답변','문항5-정답여부','문항5-이유'
     ];
     const rows = results.map(r => [
       `"${r.name}"`, r.submitted_at, r.score, r.total,
       `"${r.q1_user_order||''}"`, r.q1_correct ? '정답' : '오답', `"${r.q1_reason||''}"`,
       `"${r.q2_user_order||''}"`, r.q2_correct ? '정답' : '오답', `"${r.q2_reason||''}"`,
       `"${r.q3_user_order||''}"`, r.q3_correct ? '정답' : '오답', `"${r.q3_reason||''}"`,
-      `"${r.q4_user_order||''}"`, r.q4_correct ? '정답' : '오답', `"${r.q4_reason||''}"`
+      `"${r.q4_user_order||''}"`, r.q4_correct ? '정답' : '오답', `"${r.q4_reason||''}"`,
+      `"${r.q5_user_order||''}"`, r.q5_correct ? '정답' : '오답', `"${r.q5_reason||''}"`
     ].join(','));
     const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
