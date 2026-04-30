@@ -232,29 +232,7 @@
   }
   .result-explain strong { color: var(--gold); }
 
-  /* ===== ADMIN ===== */
-  .admin-section {
-    margin-top: 32px; padding: 24px; border-radius: var(--radius);
-    background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.09); text-align: center;
-  }
-  .admin-title { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.2); margin-bottom: 16px; }
-  .admin-input-wrap { display: flex; gap: 10px; max-width: 340px; margin: 0 auto 12px; }
-  .admin-input-wrap input {
-    flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
-    border-radius: 8px; padding: 10px 14px; font-size: 13px;
-    font-family: 'Noto Sans KR', sans-serif; color: white; outline: none;
-  }
-  .admin-input-wrap input:focus { border-color: var(--gold); }
-  .btn-admin {
-    background: rgba(255,209,102,0.12); color: var(--gold);
-    border: 1px solid rgba(255,209,102,0.27); border-radius: 8px;
-    padding: 10px 18px; font-size: 13px; font-weight: 700;
-    font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap; transition: background 0.2s;
-  }
-  .btn-admin:hover { background: rgba(255,209,102,0.22); }
-  .admin-msg { font-size: 12px; color: rgba(255,255,255,0.27); margin-top: 6px; }
-  .admin-msg.error { color: var(--red); }
-  .admin-msg.success { color: var(--green); }
+
 
   /* ===== LOADING ===== */
   .loading-overlay {
@@ -316,6 +294,20 @@
     text-decoration: underline; text-underline-offset: 3px;
   }
   .btn-case-change:hover { color: rgba(255,255,255,0.65); }
+
+  /* 결과화면 슬롯 범례 */
+  .slot-legend {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin: 12px 0; padding: 12px 14px;
+    background: rgba(255,255,255,0.03); border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .slot-tag {
+    font-size: 12px; color: rgba(255,255,255,0.55);
+    background: rgba(255,255,255,0.05); border-radius: 6px;
+    padding: 4px 10px; white-space: nowrap;
+  }
+  .slot-tag strong { color: rgba(255,255,255,0.9); margin-right: 2px; }
   .mt-16 { margin-top: 16px; }
   .text-center { text-align: center; }
   @media (max-width: 600px) {
@@ -323,6 +315,8 @@
     .name-card { padding: 36px 18px; }
     .result-item-header { flex-wrap: wrap; gap: 8px; }
   }
+
+
 </style>
 </head>
 <body>
@@ -411,19 +405,14 @@
       </div>
     </div>
     <div class="result-list" id="result-list"></div>
-    <div class="admin-section">
-      <div class="admin-title">🔒 관리자 전용</div>
-      <div class="admin-input-wrap">
-        <input type="password" id="admin-pw" placeholder="관리자 비밀번호" onkeydown="if(event.key==='Enter')adminDownload()">
-        <button class="btn-admin" onclick="adminDownload()">CSV 다운로드</button>
-      </div>
-      <div class="admin-msg" id="admin-msg"></div>
-    </div>
+
     <div class="mt-16 text-center">
       <button class="btn-secondary" onclick="restart()">↩ 다시 도전하기</button>
     </div>
   </div>
 </div>
+
+
 
 <div class="toast" id="toast"></div>
 
@@ -431,7 +420,6 @@
 // ===== CONFIG =====
 const SUPABASE_URL = 'https://mrdmywosqzaqukdfvbzv.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yZG15d29zcXphcXVrZGZ2Ynp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NzIzNTksImV4cCI6MjA4OTU0ODM1OX0.D2PKVx9cqyAg-qIpKdtUX9z9AwdjDwNgo6Nsyy4vdNM';
-const ADMIN_PW = 'kaon2026';
 
 async function sbInsert(data) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/quiz_results`, {
@@ -447,36 +435,37 @@ async function sbInsert(data) {
   if (!res.ok) throw new Error(await res.text());
 }
 
-async function sbSelect() {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/quiz_results?select=*&order=submitted_at.asc`, {
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
+
 
 // ===== SVG DIAGRAMS =====
-// 모든 좌석: 알파벳 A/B/C/D 표기, 균일한 회색 스타일 (정답 힌트 없음)
-const SEAT_STYLE = {
-  fill: 'rgba(255,255,255,0.06)',
-  stroke: 'rgba(255,255,255,0.22)',
-  textFill: 'rgba(255,255,255,0.85)',
-  labelFill: 'rgba(255,255,255,0.5)'
-};
+// slotLabels: 도면의 각 좌석 슬롯에 표시할 알파벳 배열
+// 슬롯 순서는 문항마다 고정 (상석부터 말석 순의 "물리적 위치" 순서가 아니라
+// 도면 그리기 편의상 좌→우, 상→하 등 임의 순서)
+// 어떤 슬롯이 상석인지는 correctAnswer가 정의
 
-const DIAGRAMS = {
+const DIAGRAM_FNS = {
 
-  // ── 엘리베이터 ──────────────────────────────────────────────────────────────
-  elevator: `<svg class="diagram-svg" viewBox="0 0 300 280" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- 엘리베이터 박스 -->
+  // 슬롯순서: s[0]=왼위, s[1]=오른위, s[2]=왼아래, s[3]=오른아래
+  // 엘리베이터: 왼위=출입구대각, 오른위=조작대각앞, 왼아래=조작버튼옆, 오른아래=조작버튼대각(상석)
+  elevator: (s) => `<svg class="diagram-svg" viewBox="0 0 300 280" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="15" y="28" width="270" height="240" rx="10"
       fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.14)" stroke-width="2"/>
-    <!-- 출입구 (상단) -->
-    <rect x="105" y="28" width="40" height="7" rx="2" fill="rgba(255,77,141,0.55)"/>
-    <rect x="155" y="28" width="40" height="7" rx="2" fill="rgba(255,77,141,0.55)"/>
-    <text x="150" y="21" text-anchor="middle" fill="rgba(255,255,255,0.5)"
-      font-size="11" font-family="Noto Sans KR,sans-serif" font-weight="500">출입구</text>
-    <!-- 조작버튼 패널 (좌측) -->
+    <!-- 출입구 문 (상단 중앙, 두 짝) -->
+    <!-- 문틀 -->
+    <rect x="102" y="14" width="96" height="22" rx="3"
+      fill="rgba(255,77,141,0.08)" stroke="rgba(255,77,141,0.5)" stroke-width="1.5"/>
+    <!-- 왼쪽 문짝 -->
+    <rect x="104" y="15" width="44" height="20" rx="2"
+      fill="rgba(255,77,141,0.18)" stroke="rgba(255,77,141,0.6)" stroke-width="1"/>
+    <!-- 오른쪽 문짝 -->
+    <rect x="150" y="15" width="44" height="20" rx="2"
+      fill="rgba(255,77,141,0.18)" stroke="rgba(255,77,141,0.6)" stroke-width="1"/>
+    <!-- 왼쪽 손잡이 -->
+    <rect x="144" y="22" width="5" height="6" rx="1.5" fill="rgba(255,77,141,0.85)"/>
+    <!-- 오른쪽 손잡이 -->
+    <rect x="151" y="22" width="5" height="6" rx="1.5" fill="rgba(255,77,141,0.85)"/>
+    <text x="150" y="10" text-anchor="middle" fill="rgba(255,77,141,0.75)"
+      font-size="9" font-family="Noto Sans KR,sans-serif" font-weight="600">출입구</text>
     <rect x="27" y="186" width="28" height="56" rx="5"
       fill="rgba(255,209,102,0.09)" stroke="rgba(255,209,102,0.32)" stroke-width="1.5"/>
     <circle cx="41" cy="200" r="3" fill="rgba(255,209,102,0.65)"/>
@@ -484,273 +473,336 @@ const DIAGRAMS = {
     <circle cx="41" cy="224" r="3" fill="rgba(255,209,102,0.65)"/>
     <text x="41" y="253" text-anchor="middle" fill="rgba(255,209,102,0.55)"
       font-size="9" font-family="Noto Sans KR,sans-serif">조작버튼</text>
-    <!-- A: 우측 하단 (조작버튼 대각선 안쪽) -->
-    <rect x="175" y="178" width="90" height="72" rx="10"
-      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="220" y="208" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">A</text>
-    <!-- B: 우측 상단 (조작버튼 대각선 앞) -->
-    <rect x="175" y="52" width="90" height="72" rx="10"
-      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="220" y="82" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">B</text>
-    <!-- C: 좌측 상단 (출입구 대각선 맞은편) -->
     <rect x="68" y="52" width="90" height="72" rx="10"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="113" y="82" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">C</text>
-    <!-- D: 좌측 하단 (조작버튼 바로 옆) -->
+    <text x="113" y="96" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="26" font-weight="800" font-family="sans-serif">${s[0]}</text>
+    <rect x="175" y="52" width="90" height="72" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="220" y="96" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="26" font-weight="800" font-family="sans-serif">${s[1]}</text>
     <rect x="68" y="178" width="90" height="72" rx="10"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="113" y="208" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">D</text>
+    <text x="113" y="222" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="26" font-weight="800" font-family="sans-serif">${s[2]}</text>
+    <rect x="175" y="178" width="90" height="72" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="220" y="222" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="26" font-weight="800" font-family="sans-serif">${s[3]}</text>
   </svg>`,
 
-  // ── 회의실 ㄷ자 ─────────────────────────────────────────────────────────────
-  meeting: `<svg class="diagram-svg" viewBox="0 0 300 290" fill="none" xmlns="http://www.w3.org/2000/svg">
+  // 슬롯순서(SVG): s[0]=A(상단중앙/상석1위), s[1]=D(오른쪽바깥/2위), s[2]=B(왼쪽위바깥/3위), s[3]=C(왼쪽아래바깥/말석4위)
+  // 출입구: C(왼쪽아래) 바로 아래 왼쪽
+  // ㄷ자 개구부 하단(출입구 방향)
+  meeting: (s) => `<svg class="diagram-svg" viewBox="0 0 300 310" fill="none" xmlns="http://www.w3.org/2000/svg">
     <!-- 방 테두리 -->
-    <rect x="12" y="22" width="276" height="256" rx="10"
+    <rect x="12" y="10" width="276" height="282" rx="10"
       fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
-    <!-- 출입구 (상단) -->
-    <rect x="112" y="22" width="76" height="7" rx="2" fill="rgba(255,77,141,0.55)"/>
-    <text x="150" y="16" text-anchor="middle" fill="rgba(255,255,255,0.5)"
-      font-size="11" font-family="Noto Sans KR,sans-serif" font-weight="500">출입구</text>
-    <!-- ㄷ자 테이블 -->
-    <rect x="78" y="72" width="144" height="18" rx="4"
-      fill="rgba(255,255,255,0.09)" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/>
-    <rect x="78" y="72" width="18" height="118" rx="4"
-      fill="rgba(255,255,255,0.09)" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/>
-    <rect x="204" y="72" width="18" height="118" rx="4"
-      fill="rgba(255,255,255,0.09)" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/>
-    <!-- A: 하단 중앙 (출입구 맞은편 안쪽) -->
-    <rect x="100" y="238" width="100" height="32" rx="9"
+
+    <!-- 출입구 문: 왼쪽 아래 벽 -->
+    <!-- 문틀 -->
+    <rect x="12" y="240" width="18" height="52" rx="3"
+      fill="rgba(255,77,141,0.08)" stroke="rgba(255,77,141,0.5)" stroke-width="1.5"/>
+    <!-- 문짝 (살짝 열린 형태) -->
+    <rect x="13" y="241" width="16" height="48" rx="2"
+      fill="rgba(255,77,141,0.18)" stroke="rgba(255,77,141,0.6)" stroke-width="1"/>
+    <!-- 손잡이 -->
+    <circle cx="26" cy="267" r="2.5" fill="rgba(255,77,141,0.9)"/>
+    <text x="30" y="298" text-anchor="start" fill="rgba(255,77,141,0.75)"
+      font-size="9" font-family="Noto Sans KR,sans-serif" font-weight="600">출입구</text>
+
+    <!-- ㄷ자 테이블: 상단바 + 좌측바 + 우측바 (개구부 하단) -->
+    <!-- 상단바 -->
+    <rect x="90" y="75" width="140" height="18" rx="4"
+      fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    <!-- 좌측바 -->
+    <rect x="90" y="75" width="18" height="130" rx="4"
+      fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    <!-- 우측바 -->
+    <rect x="212" y="75" width="18" height="130" rx="4"
+      fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+
+    <!-- s[0]: A — 상단 중앙 (상석 1위) -->
+    <rect x="120" y="22" width="80" height="46" rx="8"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="150" y="259" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="17" font-weight="800" font-family="sans-serif">A</text>
-    <!-- B: 좌측 중앙 -->
-    <rect x="20" y="108" width="48" height="42" rx="9"
+    <text x="160" y="51" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="22" font-weight="800" font-family="sans-serif">${s[0]}</text>
+
+    <!-- s[1]: D — 오른쪽 바 바깥 중앙 (2위) -->
+    <rect x="240" y="110" width="44" height="46" rx="8"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="44" y="134" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="17" font-weight="800" font-family="sans-serif">B</text>
-    <!-- C: 우측 중앙 -->
-    <rect x="232" y="108" width="48" height="42" rx="9"
+    <text x="262" y="139" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="22" font-weight="800" font-family="sans-serif">${s[1]}</text>
+
+    <!-- s[2]: B — 왼쪽 바 바깥 위 (3위) -->
+    <rect x="22" y="88" width="58" height="46" rx="8"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="256" y="134" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="17" font-weight="800" font-family="sans-serif">C</text>
-    <!-- D: 상단 (출입구 가까운 자리) -->
-    <rect x="108" y="32" width="84" height="32" rx="9"
+    <text x="51" y="117" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="22" font-weight="800" font-family="sans-serif">${s[2]}</text>
+
+    <!-- s[3]: C — 왼쪽 바 바깥 아래 (말석 4위) -->
+    <rect x="22" y="152" width="58" height="46" rx="8"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="150" y="53" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="17" font-weight="800" font-family="sans-serif">D</text>
+    <text x="51" y="181" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="22" font-weight="800" font-family="sans-serif">${s[3]}</text>
   </svg>`,
 
-  // ── 자동차: 운전기사 케이스 (조수석 포함, 총 4자리) ──────────────────────────
-  car_driver: `<svg class="diagram-svg" viewBox="0 0 300 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+  // 슬롯순서: s[0]=오른위(조수석), s[1]=왼아래(뒤왼쪽), s[2]=오른아래(뒤오른쪽), s[3]=가운데(뒤가운데)
+  // → 왼위는 운전석(고정). 실질 슬롯 3개+가운데 1개
+  // 2x2처럼 보이되 왼위=운전석고정, 오른위=s[0], 왼아래=s[1], 오른아래=s[2], 가운데아래=s[3]
+  car_driver: (s) => `<svg class="diagram-svg" viewBox="0 0 300 250" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="18" y="18" width="264" height="214" rx="22"
       fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
     <line x1="18" y1="118" x2="282" y2="118"
       stroke="rgba(255,255,255,0.08)" stroke-width="1.5" stroke-dasharray="6,4"/>
-    <!-- 진행방향 -->
     <polygon points="150,6 142,18 158,18" fill="rgba(6,214,160,0.6)"/>
     <text x="150" y="5" text-anchor="middle" fill="rgba(6,214,160,0.6)"
       font-size="9" font-family="Noto Sans KR,sans-serif" font-weight="500">진행방향</text>
-    <!-- 운전석 핸들 -->
     <circle cx="72" cy="72" r="20" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.17)" stroke-width="2"/>
-    <circle cx="72" cy="72" r="7"  fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.24)" stroke-width="1.5"/>
+    <circle cx="72" cy="72" r="7" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.24)" stroke-width="1.5"/>
     <line x1="72" y1="52" x2="72" y2="65" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
     <line x1="72" y1="79" x2="72" y2="92" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
     <text x="72" y="107" text-anchor="middle" fill="rgba(255,255,255,0.32)"
       font-size="9" font-family="Noto Sans KR,sans-serif">운전기사</text>
-    <!-- A: 조수석 (앞 오른쪽) -->
     <rect x="186" y="36" width="78" height="66" rx="10"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
     <text x="225" y="65" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">A</text>
-    <text x="225" y="82" text-anchor="middle" fill="rgba(255,255,255,0.38)"
+      font-size="26" font-weight="800" font-family="sans-serif">${s[0]}</text>
+    <text x="225" y="84" text-anchor="middle" fill="rgba(255,255,255,0.32)"
       font-size="9" font-family="Noto Sans KR,sans-serif">조수석</text>
-    <!-- B: 뒤 오른쪽 (운전자 대각선) -->
-    <rect x="186" y="136" width="78" height="72" rx="10"
+    <rect x="30" y="136" width="78" height="72" rx="10"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="225" y="168" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">B</text>
-    <text x="225" y="184" text-anchor="middle" fill="rgba(255,255,255,0.38)"
-      font-size="9" font-family="Noto Sans KR,sans-serif">뒤 오른쪽</text>
-    <!-- C: 뒤 왼쪽 (운전자 바로 뒤) -->
-    <rect x="36" y="136" width="78" height="72" rx="10"
-      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="75" y="168" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">C</text>
-    <text x="75" y="184" text-anchor="middle" fill="rgba(255,255,255,0.38)"
+    <text x="69" y="173" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="26" font-weight="800" font-family="sans-serif">${s[1]}</text>
+    <text x="69" y="192" text-anchor="middle" fill="rgba(255,255,255,0.32)"
       font-size="9" font-family="Noto Sans KR,sans-serif">뒤 왼쪽</text>
-    <!-- D: 뒤 가운데 -->
-    <rect x="120" y="136" width="60" height="72" rx="10"
+    <rect x="192" y="136" width="78" height="72" rx="10"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="150" y="168" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">D</text>
-    <text x="150" y="184" text-anchor="middle" fill="rgba(255,255,255,0.38)"
+    <text x="231" y="173" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="26" font-weight="800" font-family="sans-serif">${s[2]}</text>
+    <text x="231" y="192" text-anchor="middle" fill="rgba(255,255,255,0.32)"
+      font-size="9" font-family="Noto Sans KR,sans-serif">뒤 오른쪽</text>
+    <rect x="116" y="136" width="68" height="72" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="150" y="173" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="26" font-weight="800" font-family="sans-serif">${s[3]}</text>
+    <text x="150" y="192" text-anchor="middle" fill="rgba(255,255,255,0.32)"
       font-size="9" font-family="Noto Sans KR,sans-serif">뒤 가운데</text>
   </svg>`,
 
-  // ── 자동차: 상급자 직접 운전 (4자리) ─────────────────────────────────────────
-  car_self: `<svg class="diagram-svg" viewBox="0 0 300 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+  car_self: (s) => `<svg class="diagram-svg" viewBox="0 0 300 250" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="18" y="18" width="264" height="214" rx="22"
       fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
     <line x1="18" y1="118" x2="282" y2="118"
       stroke="rgba(255,255,255,0.08)" stroke-width="1.5" stroke-dasharray="6,4"/>
-    <!-- 진행방향 -->
     <polygon points="150,6 142,18 158,18" fill="rgba(6,214,160,0.6)"/>
     <text x="150" y="5" text-anchor="middle" fill="rgba(6,214,160,0.6)"
       font-size="9" font-family="Noto Sans KR,sans-serif" font-weight="500">진행방향</text>
-    <!-- 상급자 핸들 -->
     <circle cx="72" cy="72" r="20" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.17)" stroke-width="2"/>
-    <circle cx="72" cy="72" r="7"  fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.24)" stroke-width="1.5"/>
+    <circle cx="72" cy="72" r="7" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.24)" stroke-width="1.5"/>
     <line x1="72" y1="52" x2="72" y2="65" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
     <line x1="72" y1="79" x2="72" y2="92" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
     <text x="72" y="107" text-anchor="middle" fill="rgba(255,255,255,0.32)"
       font-size="9" font-family="Noto Sans KR,sans-serif">상급자(운전)</text>
-    <!-- A: 조수석 (앞 오른쪽) -->
     <rect x="186" y="36" width="78" height="66" rx="10"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
     <text x="225" y="65" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">A</text>
-    <text x="225" y="82" text-anchor="middle" fill="rgba(255,255,255,0.38)"
+      font-size="26" font-weight="800" font-family="sans-serif">${s[0]}</text>
+    <text x="225" y="84" text-anchor="middle" fill="rgba(255,255,255,0.32)"
       font-size="9" font-family="Noto Sans KR,sans-serif">조수석</text>
-    <!-- B: 뒤 오른쪽 -->
-    <rect x="186" y="136" width="78" height="72" rx="10"
+    <rect x="30" y="136" width="78" height="72" rx="10"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="225" y="168" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">B</text>
-    <text x="225" y="184" text-anchor="middle" fill="rgba(255,255,255,0.38)"
-      font-size="9" font-family="Noto Sans KR,sans-serif">뒤 오른쪽</text>
-    <!-- C: 뒤 왼쪽 -->
-    <rect x="36" y="136" width="78" height="72" rx="10"
-      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="75" y="168" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">C</text>
-    <text x="75" y="184" text-anchor="middle" fill="rgba(255,255,255,0.38)"
+    <text x="69" y="173" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="26" font-weight="800" font-family="sans-serif">${s[1]}</text>
+    <text x="69" y="192" text-anchor="middle" fill="rgba(255,255,255,0.32)"
       font-size="9" font-family="Noto Sans KR,sans-serif">뒤 왼쪽</text>
-    <!-- D: 뒤 가운데 -->
-    <rect x="120" y="136" width="60" height="72" rx="10"
+    <rect x="192" y="136" width="78" height="72" rx="10"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="150" y="168" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">D</text>
-    <text x="150" y="184" text-anchor="middle" fill="rgba(255,255,255,0.38)"
+    <text x="231" y="173" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="26" font-weight="800" font-family="sans-serif">${s[2]}</text>
+    <text x="231" y="192" text-anchor="middle" fill="rgba(255,255,255,0.32)"
+      font-size="9" font-family="Noto Sans KR,sans-serif">뒤 오른쪽</text>
+    <rect x="116" y="136" width="68" height="72" rx="10"
+      fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+    <text x="150" y="173" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="26" font-weight="800" font-family="sans-serif">${s[3]}</text>
+    <text x="150" y="192" text-anchor="middle" fill="rgba(255,255,255,0.32)"
       font-size="9" font-family="Noto Sans KR,sans-serif">뒤 가운데</text>
   </svg>`,
 
-  // ── 레스토랑 ────────────────────────────────────────────────────────────────
-  // 좌석: 테이블 각 변 중앙, 출입구 하단, 창문 상단
-  dining: `<svg class="diagram-svg" viewBox="0 0 300 310" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="10" y="20" width="280" height="270" rx="10"
-      fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
-    <!-- 창문 (상단) -->
-    <rect x="75" y="20" width="150" height="6" rx="2" fill="rgba(6,214,160,0.5)"/>
-    <text x="150" y="15" text-anchor="middle" fill="rgba(6,214,160,0.7)"
-      font-size="11" font-family="Noto Sans KR,sans-serif" font-weight="500">창문 (경치)</text>
-    <!-- 출입구 (하단) -->
-    <rect x="105" y="284" width="90" height="6" rx="2" fill="rgba(255,77,141,0.55)"/>
-    <text x="150" y="299" text-anchor="middle" fill="rgba(255,77,141,0.75)"
-      font-size="11" font-family="Noto Sans KR,sans-serif" font-weight="500">출입구</text>
-    <!-- 테이블 (중앙) -->
-    <rect x="82" y="96" width="136" height="108" rx="10"
-      fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
-    <text x="150" y="153" text-anchor="middle" fill="rgba(255,255,255,0.13)"
-      font-size="11" font-family="Noto Sans KR,sans-serif">테이블</text>
-    <!-- A: 상단 중앙 (창가 쪽, 출입구 등짐) -->
-    <rect x="108" y="34" width="84" height="48" rx="9"
+  // 슬롯: s[0]=A(상단왼/1석), s[1]=B(상단우/2석), s[2]=C(하단왼/3석), s[3]=D(하단우/말석4석)
+  // 출입구: 오른쪽 하단 벽 → D가 출입구 바로 옆 말석, 직관적으로 구분 가능
+  dining: (s) => `<svg class="diagram-svg" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- 방 테두리 (출입구 오른쪽 하단 벽 틈) -->
+    <!-- 위쪽 벽 -->
+    <line x1="10" y1="14" x2="290" y2="14" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
+    <!-- 왼쪽 벽 -->
+    <line x1="10" y1="14" x2="10" y2="286" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
+    <!-- 하단 왼쪽 벽 (출입구 왼쪽까지) -->
+    <line x1="10" y1="286" x2="190" y2="286" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
+    <!-- 출입구 틈: x=190~250 은 비워둠 -->
+    <!-- 하단 오른쪽 벽 (출입구 오른쪽부터) -->
+    <line x1="250" y1="286" x2="290" y2="286" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
+    <!-- 오른쪽 벽 -->
+    <line x1="290" y1="14" x2="290" y2="286" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
+    <!-- 방 배경 -->
+    <rect x="11" y="15" width="278" height="270" rx="0"
+      fill="rgba(255,255,255,0.02)"/>
+
+    <!-- 출입구 문: 오른쪽 하단 (x=190~250, y=286) -->
+    <!-- 문틀 -->
+    <rect x="188" y="272" width="64" height="18" rx="3"
+      fill="rgba(255,77,141,0.08)" stroke="rgba(255,77,141,0.5)" stroke-width="1.5"/>
+    <!-- 문짝 -->
+    <rect x="189" y="273" width="62" height="16" rx="2"
+      fill="rgba(255,77,141,0.18)" stroke="rgba(255,77,141,0.6)" stroke-width="1"/>
+    <!-- 손잡이 -->
+    <circle cx="194" cy="281" r="2.5" fill="rgba(255,77,141,0.9)"/>
+    <text x="220" y="298" text-anchor="middle" fill="rgba(255,77,141,0.75)"
+      font-size="9" font-family="Noto Sans KR,sans-serif" font-weight="600">출입구</text>
+
+    <!-- 테이블 중앙 -->
+    <rect x="72" y="88" width="156" height="112" rx="10"
+      fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+    <text x="150" y="148" text-anchor="middle" fill="rgba(255,255,255,0.13)"
+      font-size="12" font-family="Noto Sans KR,sans-serif">테이블</text>
+
+    <!-- A: 상단 왼쪽 (상석 1위) -->
+    <rect x="86" y="30" width="44" height="44" rx="8"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="150" y="63" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">A</text>
-    <!-- B: 우측 중앙 -->
-    <rect x="232" y="112" width="50" height="76" rx="9"
+    <text x="108" y="57" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="22" font-weight="800" font-family="sans-serif">${s[0]}</text>
+
+    <!-- B: 상단 오른쪽 (2위) -->
+    <rect x="170" y="30" width="44" height="44" rx="8"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="257" y="154" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">B</text>
-    <!-- C: 좌측 중앙 -->
-    <rect x="18" y="112" width="50" height="76" rx="9"
+    <text x="192" y="57" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="22" font-weight="800" font-family="sans-serif">${s[1]}</text>
+
+    <!-- C: 하단 왼쪽 (3위) -->
+    <rect x="86" y="214" width="44" height="44" rx="8"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="43" y="154" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">C</text>
-    <!-- D: 하단 중앙 (출입구 가까운, 경치 등짐) -->
-    <rect x="108" y="218" width="84" height="48" rx="9"
+    <text x="108" y="241" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="22" font-weight="800" font-family="sans-serif">${s[2]}</text>
+
+    <!-- D: 하단 오른쪽 (말석 4위, 출입구 바로 옆) -->
+    <rect x="170" y="214" width="44" height="44" rx="8"
       fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
-    <text x="150" y="247" text-anchor="middle" fill="rgba(255,255,255,0.9)"
-      font-size="20" font-weight="800" font-family="sans-serif">D</text>
+    <text x="192" y="241" text-anchor="middle" fill="rgba(255,255,255,0.9)"
+      font-size="22" font-weight="800" font-family="sans-serif">${s[3]}</text>
   </svg>`
 };
 // ===== QUESTIONS =====
+// slots: 도면 슬롯의 위치 설명 (슬롯 인덱스 = 도면 내 물리적 위치)
+// slotCorrectRank: 각 슬롯이 몇 번째 상석인지 (1=상석, n=말석)
+// 예) slotCorrectRank=[2,3,1,4] → 슬롯0=2석, 슬롯1=3석, 슬롯2=1석(상석), 슬롯3=4석
+// correctLetterOrder: 상석부터 순서대로 나열했을 때의 알파벳 순서 (도면 배치 후 계산)
+//   → 런타임에 slotAssignment(슬롯→알파벳 매핑)으로부터 동적 계산
+
 const QUESTIONS = [
   {
-    id: 'elevator', title: '엘리베이터 상석 예절',
-    desc: '엘리베이터를 타고 문을 바라보며 섰을 때, 아래 A~D 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요.',
-    seats: [
-      'A – 조작버튼 대각선 안쪽',
-      'B – 조작버튼 대각선 앞',
-      'C – 출입구 대각선 맞은편',
-      'D – 조작버튼 바로 옆'
-    ],
-    correctOrder: [0, 1, 2, 3],
-    explanation: '조작 버튼의 대각선 안쪽(A)이 상석입니다. 출입구에서 가장 멀고 조작 버튼을 등질 수 있어 안정적입니다. 조작 버튼 바로 옆(D)은 버튼을 눌러야 하는 역할이므로 말석입니다.',
-    diagramId: 'elevator'
+    id: 'elevator',
+    title: '엘리베이터 상석 예절',
+    desc: '엘리베이터를 타고 문을 바라보며 섰을 때, 도면의 A~D 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요.',
+    // 새 슬롯순서: [왼위=출입구대각, 오른위=조작대각앞, 왼아래=조작옆, 오른아래=조작대각(상석)]
+    slots: ['출입구 대각선 맞은편 (왼위)', '조작버튼 대각선 앞 (오른위)', '조작버튼 바로 옆 (왼아래)', '조작버튼 대각선 안쪽 (오른아래)'],
+    slotCorrectRank: [3, 2, 4, 1],
+    diagramId: 'elevator',
+    explanation: '조작 버튼의 대각선 안쪽(오른쪽 아래)이 상석입니다. 출입구에서 가장 멀고 조작 버튼을 등질 수 있어 안정적입니다. 조작 버튼 바로 옆(왼쪽 아래)은 버튼을 눌러야 하는 역할이므로 말석입니다.'
   },
   {
-    id: 'meeting', title: '회의실 상석 예절 (ㄷ자 테이블)',
-    desc: 'ㄷ자 형태 회의 테이블에서 아래 A~D 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요.',
-    seats: [
-      'A – 출입구 맞은편 안쪽',
-      'B – 테이블 왼쪽 안쪽',
-      'C – 테이블 오른쪽 안쪽',
-      'D – 출입구 가까운 자리'
-    ],
-    correctOrder: [0, 1, 2, 3],
-    explanation: '출입문과 가장 멀고 출입문을 정면으로 바라볼 수 있는 자리(A)가 상석입니다. 발표·보고 목적이면 스크린이 잘 보이는 자리가 상석이 되기도 합니다. 외부 손님이 있을 경우 상석을 양보하는 것이 매너입니다.',
-    diagramId: 'meeting'
+    id: 'meeting',
+    title: '회의실 상석 예절 (ㄷ자 테이블)',
+    desc: 'ㄷ자 형태 회의 테이블에서 도면의 A~D 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요.',
+    // SVG 슬롯 순서: s[0]=A(상단중앙/상석1위), s[1]=D(오른쪽바깥/2위), s[2]=B(왼쪽위바깥/3위), s[3]=C(왼쪽아래바깥/말석4위)
+    slots: ['상단 중앙 (출입구 맞은편 안쪽)', '테이블 오른쪽 바깥', '테이블 왼쪽 위 바깥', '테이블 왼쪽 아래 바깥 (출입구 근처)'],
+    slotCorrectRank: [1, 2, 3, 4],
+    diagramId: 'meeting',
+    explanation: '출입문 맞은편 안쪽(상단 중앙, A)이 상석입니다. 오른쪽 바깥(D)이 2석, 왼쪽 위 바깥(B)이 3석, 출입구와 가장 가까운 왼쪽 아래(C)가 말석입니다. 외부 손님이 있을 경우 상석을 양보하는 것이 매너입니다.'
   },
   {
-    id: 'car_driver', title: '자동차 상석 예절 — 🚕 운전기사가 있는 경우',
-    desc: '운전기사가 있는 차량(택시 등)에서 A~D 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요.',
-    seats: [
-      'A – 조수석 (앞 오른쪽)',
-      'B – 운전자 대각선 (뒤 오른쪽)',
-      'C – 운전자 뒤 (뒤 왼쪽)',
-      'D – 뒷자리 가운데'
-    ],
-    correctOrder: [1, 2, 0, 3],
-    explanation: '운전기사가 있을 때 상석은 운전석 대각선 뒷자리(B, 뒤 오른쪽)입니다. 하차 시 보도 쪽으로 내릴 수 있어 안전합니다. 조수석(A)은 운전기사와 대화·길 안내 역할로 3석, 뒷자리 가운데(D)가 말석입니다.',
-    diagramId: 'car_driver'
+    id: 'car_driver',
+    title: '자동차 상석 예절 — 🚕 운전기사가 있는 경우',
+    desc: '운전기사가 있는 차량(택시 등)에서 도면의 A~D 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요.',
+    // 슬롯: s[0]=조수석(오른위), s[1]=뒤왼쪽(왼아래), s[2]=뒤오른쪽(오른아래), s[3]=뒤가운데
+    slots: ['조수석 (오른위)', '뒤 왼쪽 (왼아래)', '뒤 오른쪽 (오른아래)', '뒤 가운데'],
+    slotCorrectRank: [3, 2, 1, 4],
+    diagramId: 'car_driver',
+    explanation: '운전기사가 있을 때 상석은 운전석 대각선 뒷자리(뒤 오른쪽)입니다. 하차 시 보도 쪽으로 내릴 수 있어 안전합니다. 조수석은 3석, 뒷자리 가운데가 말석입니다.'
   },
   {
-    id: 'car_self', title: '자동차 상석 예절 — 🚗 상급자가 직접 운전하는 경우',
-    desc: '상급자가 직접 운전하는 차량에서 A~D 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요.',
-    seats: [
-      'A – 조수석 (앞 오른쪽)',
-      'B – 뒷자리 오른쪽',
-      'C – 뒷자리 왼쪽',
-      'D – 뒷자리 가운데'
-    ],
-    correctOrder: [0, 1, 2, 3],
-    explanation: '상급자가 직접 운전할 때는 조수석(A)이 상석입니다. 상급자와 가장 가까운 자리로 동행의 의미가 있습니다. 뒷자리 가운데(D)가 말석입니다. 탑승 전 상급자에게 선호 자리를 먼저 여쭤보는 것이 좋습니다.',
-    diagramId: 'car_self'
+    id: 'car_self',
+    title: '자동차 상석 예절 — 🚗 상급자가 직접 운전하는 경우',
+    desc: '상급자가 직접 운전하는 차량에서 도면의 A~D 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요.',
+    // 슬롯: s[0]=조수석(오른위), s[1]=뒤왼쪽(왼아래), s[2]=뒤오른쪽(오른아래), s[3]=뒤가운데
+    slots: ['조수석 (오른위)', '뒤 왼쪽 (왼아래)', '뒤 오른쪽 (오른아래)', '뒤 가운데'],
+    slotCorrectRank: [1, 3, 2, 4],
+    diagramId: 'car_self',
+    explanation: '상급자가 직접 운전할 때는 조수석이 상석입니다. 상급자와 가장 가까운 자리입니다. 뒷자리 오른쪽 2석, 왼쪽 3석, 가운데가 말석입니다. 탑승 전 선호 자리를 먼저 여쭤보는 것이 좋습니다.'
   },
   {
-    id: 'dining', title: '식사 자리 상석 예절 (레스토랑)',
-    desc: '레스토랑 사각 테이블에서 A~D 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요. 상단에 창문(경치), 하단에 출입구가 있습니다.',
-    seats: [
-      'A – 창가 쪽 상단 (출입구 등지고 경치 바라봄)',
-      'B – 오른쪽 옆자리',
-      'C – 왼쪽 옆자리',
-      'D – 출입구 쪽 하단 (경치 등짐)'
-    ],
-    correctOrder: [0, 1, 2, 3],
-    explanation: '레스토랑 상석은 출입구를 등지고 경치(창가)를 바라볼 수 있는 안쪽 자리(A)입니다. 출입구에서 가장 멀어 통행 방해가 없고, 창가 경치를 즐길 수 있습니다. 출입구 가까운 자리(D)는 통행이 잦아 말석입니다.',
-    diagramId: 'dining'
+    id: 'dining',
+    title: '식사 자리 상석 예절 (레스토랑)',
+    desc: '레스토랑 사각 테이블에서 도면의 A~D 자리를 상석(1위)부터 말석(4위)까지 순서대로 나열해 주세요. 오른쪽 하단에 출입구가 있습니다.',
+    // A=상단왼(1석), B=상단우(2석), C=하단왼(3석), D=하단우(말석, 출입구 바로 옆)
+    slots: ['상단 왼쪽', '상단 오른쪽', '하단 왼쪽', '하단 오른쪽 (출입구 바로 옆)'],
+    slotCorrectRank: [1, 2, 3, 4],
+    diagramId: 'dining',
+    explanation: '출입구에서 가장 먼 상단 왼쪽(A)이 상석입니다. 상단 오른쪽(B)이 2석, 하단 왼쪽(C)이 3석, 출입구 바로 옆인 하단 오른쪽(D)이 말석입니다. 출입구 가까울수록 통행 방해를 받아 말석으로 봅니다.'
   }
 ];
+
+const LABELS = ['A', 'B', 'C', 'D'];
 // ===== STATE =====
-let userName = '', currentQ = 0, answers = [], dragSrc = null, touchDragSrc = null;
+// slotAssignment[qIdx] = [slotIdx→letter] 배열: 도면 슬롯별 알파벳 배치 (매 게임 랜덤)
+// userRanking[qIdx]    = ['A','B','C','D'] 고정 (드래그로 순서 변경)
+let userName = '', currentQ = 0;
+let slotAssignments = []; // 문항별 슬롯→알파벳 매핑
+let userRankings = [];    // 문항별 사용자가 드래그한 A~D 순서 (상석부터)
+let reasons = [];
+let dragSrc = null, touchDragSrc = null;
+
+// 도면: 슬롯 위치는 항상 왼위=A, 오른위=B, 왼아래=C, 오른아래=D 로 고정
+// 대신 slotCorrectRank를 매 게임 셔플하여 정답 위치를 바꿈
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// slotAssignment: 항상 ['A','B','C','D'] 고정 (왼위=A, 오른위=B, 왼아래=C, 오른아래=D)
+function makeSlotAssignment(q) {
+  return LABELS.slice(0, q.slots.length);
+}
+
+// 정답: shuffledRank 기준으로 상석(rank=1)인 슬롯의 알파벳이 1위
+// 슬롯i = 알파벳 LABELS[i] 이므로 straightforward
+function getCorrectLetterOrder(q, assignment, shuffledRank) {
+  const n = q.slots.length;
+  const ranked = [];
+  for (let rank = 1; rank <= n; rank++) {
+    const slotIdx = shuffledRank.indexOf(rank);
+    ranked.push(assignment[slotIdx]); // = LABELS[slotIdx]
+  }
+  return ranked;
+}
+
+// 문항별 정답 순위 (고정, 셔플 없음)
+let shuffledRanks = [];
 
 function initAnswers() {
-  answers = QUESTIONS.map(q => ({ order: q.seats.map((_, i) => i), reason: '' }));
+  // 도면 알파벳 배치: 항상 고정 A,B,C,D
+  slotAssignments = QUESTIONS.map(q => makeSlotAssignment(q));
+
+  // 정답 위치 고정 — 항상 원본 slotCorrectRank 사용
+  shuffledRanks = QUESTIONS.map(q => [...q.slotCorrectRank]);
+
+  // 드래그 항목: 항상 A→B→C→D 순서로 시작
+  userRankings = QUESTIONS.map(q => LABELS.slice(0, q.slots.length));
+  reasons = QUESTIONS.map(() => '');
 }
 
 // ===== SCREENS =====
@@ -783,30 +835,31 @@ function renderQ() {
   document.getElementById('q-num').textContent = `Question ${String(currentQ+1).padStart(2,'0')}`;
   document.getElementById('q-title').textContent = q.title;
   document.getElementById('q-desc').textContent = q.desc;
-  document.getElementById('q-diagram').innerHTML = DIAGRAMS[q.diagramId];
+  // 도면 렌더: 슬롯 알파벳은 항상 A,B,C,D 고정
+  document.getElementById('q-diagram').innerHTML = DIAGRAM_FNS[q.diagramId](slotAssignments[currentQ]);
   document.getElementById('quiz-normal-area').style.display = 'block';
   document.getElementById('car-case-select-area').style.display = 'none';
   document.getElementById('car-case-tag').style.display = 'none';
   document.getElementById('car-case-change').style.display = 'none';
   renderRankList();
-  document.getElementById('reason-input').value = answers[currentQ].reason;
+  document.getElementById('reason-input').value = reasons[currentQ];
   document.getElementById('btn-prev').style.visibility = currentQ === 0 ? 'hidden' : 'visible';
   document.getElementById('btn-next').textContent = currentQ === total-1 ? '제출하기 ✓' : '다음 →';
 }
 
 function renderRankList() {
-  const q = QUESTIONS[currentQ], order = answers[currentQ].order;
+  const ranking = userRankings[currentQ];
   const list = document.getElementById('rank-list');
   list.innerHTML = '';
-  order.forEach((seatIdx, pos) => {
+  ranking.forEach((letter, pos) => {
     const li = document.createElement('li');
     li.className = 'rank-item'; li.draggable = true; li.dataset.pos = pos;
-    li.innerHTML = `<div class="rank-item-label">${q.seats[seatIdx]}</div><div class="rank-handle">⠿</div>`;
+    li.innerHTML = `<div class="rank-item-label">${letter}</div><div class="rank-handle">⠿</div>`;
     li.addEventListener('dragstart', e => { dragSrc = pos; setTimeout(() => li.classList.add('dragging'), 0); e.dataTransfer.effectAllowed = 'move'; });
     li.addEventListener('dragend', () => li.classList.remove('dragging'));
     li.addEventListener('dragover', e => { e.preventDefault(); li.classList.add('drag-over'); });
     li.addEventListener('dragleave', () => li.classList.remove('drag-over'));
-    li.addEventListener('drop', e => { e.preventDefault(); li.classList.remove('drag-over'); if (dragSrc !== null && dragSrc !== pos) swapOrder(dragSrc, pos); });
+    li.addEventListener('drop', e => { e.preventDefault(); li.classList.remove('drag-over'); if (dragSrc !== null && dragSrc !== pos) swapRanking(dragSrc, pos); });
     li.addEventListener('touchstart', onTouchStart, { passive: true });
     li.addEventListener('touchmove', onTouchMove, { passive: false });
     li.addEventListener('touchend', onTouchEnd);
@@ -814,10 +867,10 @@ function renderRankList() {
   });
 }
 
-function swapOrder(from, to) {
-  const o = [...answers[currentQ].order];
-  const [m] = o.splice(from, 1); o.splice(to, 0, m);
-  answers[currentQ].order = o; dragSrc = null; renderRankList();
+function swapRanking(from, to) {
+  const r = [...userRankings[currentQ]];
+  [r[from], r[to]] = [r[to], r[from]];
+  userRankings[currentQ] = r; dragSrc = null; renderRankList();
 }
 
 function onTouchStart(e) { touchDragSrc = parseInt(e.currentTarget.dataset.pos); e.currentTarget.classList.add('dragging'); }
@@ -832,22 +885,27 @@ function onTouchEnd(e) {
   const t = e.changedTouches[0], el = document.elementFromPoint(t.clientX, t.clientY);
   const target = el ? el.closest('.rank-item') : null;
   document.querySelectorAll('.rank-item').forEach(i => { i.classList.remove('dragging'); i.classList.remove('drag-over'); });
-  if (target && touchDragSrc !== null) { const tp = parseInt(target.dataset.pos); if (tp !== touchDragSrc) swapOrder(touchDragSrc, tp); }
+  if (target && touchDragSrc !== null) { const tp = parseInt(target.dataset.pos); if (tp !== touchDragSrc) swapRanking(touchDragSrc, tp); }
   touchDragSrc = null;
 }
 
-function saveReason() { answers[currentQ].reason = document.getElementById('reason-input').value.trim(); }
+function saveReason() { reasons[currentQ] = document.getElementById('reason-input').value.trim(); }
 function prevQ() { saveReason(); if (currentQ > 0) { currentQ--; renderQ(); } }
 function nextQ() {
   saveReason();
-  if (!answers[currentQ].reason) { showToast('이유를 적어주세요 ✏️'); return; }
+  if (!reasons[currentQ]) { showToast('이유를 적어주세요 ✏️'); return; }
   if (currentQ < QUESTIONS.length - 1) { currentQ++; renderQ(); } else { submitQuiz(); }
 }
 
 // ===== SUBMIT =====
+function isCorrect(qIdx) {
+  const q = QUESTIONS[qIdx];
+  const correctOrder = getCorrectLetterOrder(q, slotAssignments[qIdx], shuffledRanks[qIdx]);
+  return JSON.stringify(userRankings[qIdx]) === JSON.stringify(correctOrder);
+}
+
 function calcScore() {
-  return QUESTIONS.reduce((s, q, i) =>
-    s + (JSON.stringify(answers[i].order) === JSON.stringify(q.correctOrder) ? 1 : 0), 0);
+  return QUESTIONS.reduce((s, _, i) => s + (isCorrect(i) ? 1 : 0), 0);
 }
 
 async function submitQuiz() {
@@ -856,12 +914,18 @@ async function submitQuiz() {
   try {
     const total = QUESTIONS.length;
     const payload = { name: userName, score: calcScore(), total };
-    // q1~q5 (문항 5개로 늘어남)
     QUESTIONS.forEach((q, i) => {
       const k = `q${i+1}`;
-      payload[`${k}_user_order`] = answers[i].order.map(si => q.seats[si]).join(' → ');
-      payload[`${k}_correct`]    = JSON.stringify(answers[i].order) === JSON.stringify(q.correctOrder);
-      payload[`${k}_reason`]     = answers[i].reason;
+      const assignment = slotAssignments[i];
+      const correctOrder = getCorrectLetterOrder(q, assignment, shuffledRanks[i]);
+      // 사용자 답: 드래그 순서 + 슬롯 위치 설명
+      const userAnswerStr = userRankings[i].map((letter, rank) => {
+        const slotIdx = assignment.indexOf(letter);
+        return `${rank+1}위:${letter}(${q.slots[slotIdx]})`;
+      }).join(' → ');
+      payload[`${k}_user_order`] = userAnswerStr;
+      payload[`${k}_correct`]    = isCorrect(i);
+      payload[`${k}_reason`]     = reasons[i];
     });
     await sbInsert(payload);
   } catch(err) {
@@ -887,73 +951,51 @@ function renderResult() {
   const list = document.getElementById('result-list');
   list.innerHTML = '';
   QUESTIONS.forEach((q, i) => {
-    const isCorrect = JSON.stringify(answers[i].order) === JSON.stringify(q.correctOrder);
+    const assignment    = slotAssignments[i];
+    const correctOrder  = getCorrectLetterOrder(q, assignment, shuffledRanks[i]);
+    const correct       = isCorrect(i);
+
+    // 슬롯 위치명 조회 헬퍼
+    const slotNameOf = letter => q.slots[assignment.indexOf(letter)];
+
     const card = document.createElement('div');
     card.className = 'card result-item';
     card.innerHTML = `
       <div class="result-item-header">
         <div class="result-item-title">Q${i+1}. ${q.title}</div>
-        <div class="result-badge ${isCorrect ? 'correct' : 'incorrect'}">${isCorrect ? '✓ 정답' : '✗ 오답'}</div>
+        <div class="result-badge ${correct ? 'correct' : 'incorrect'}">${correct ? '✓ 정답' : '✗ 오답'}</div>
       </div>
       <div class="answer-compare">
         <div class="answer-box user-ans">
           <div class="answer-box-label">내 답변</div>
-          <div class="rank-sequence">${answers[i].order.map((si, pi) =>
-            `${pi > 0 ? '<span class="rank-seq-arrow">→</span>' : ''}<span class="rank-seq-item">${pi+1}위: ${q.seats[si]}</span>`).join('')}</div>
+          <div class="rank-sequence">${userRankings[i].map((letter, pi) =>
+            `${pi > 0 ? '<span class="rank-seq-arrow">→</span>' : ''}
+             <span class="rank-seq-item" title="${slotNameOf(letter)}">${pi+1}위: <strong>${letter}</strong></span>`
+          ).join('')}</div>
         </div>
         <div class="answer-box correct-ans">
           <div class="answer-box-label">정답</div>
-          <div class="rank-sequence">${q.correctOrder.map((si, pi) =>
-            `${pi > 0 ? '<span class="rank-seq-arrow" style="color:rgba(6,214,160,0.36)">→</span>' : ''}<span class="rank-seq-item">${pi+1}위: ${q.seats[si]}</span>`).join('')}</div>
+          <div class="rank-sequence">${correctOrder.map((letter, pi) =>
+            `${pi > 0 ? '<span class="rank-seq-arrow" style="color:rgba(6,214,160,0.36)">→</span>' : ''}
+             <span class="rank-seq-item" title="${slotNameOf(letter)}">${pi+1}위: <strong>${letter}</strong></span>`
+          ).join('')}</div>
         </div>
+      </div>
+      <div class="slot-legend">
+        ${assignment.map((letter, si) =>
+          `<span class="slot-tag"><strong>${letter}</strong> = ${q.slots[si]}</span>`
+        ).join('')}
       </div>
       <div>
         <div class="reason-display-label">내가 쓴 이유</div>
-        <div class="reason-display">${answers[i].reason || '(작성 없음)'}</div>
+        <div class="reason-display">${reasons[i] || '(작성 없음)'}</div>
       </div>
       <div class="result-explain"><strong>💡 해설</strong><br>${q.explanation}</div>`;
     list.appendChild(card);
   });
 }
 
-// ===== ADMIN =====
-async function adminDownload() {
-  const pw = document.getElementById('admin-pw').value;
-  const msg = document.getElementById('admin-msg');
-  if (pw !== ADMIN_PW) { msg.textContent = '비밀번호가 올바르지 않습니다.'; msg.className = 'admin-msg error'; return; }
-  msg.textContent = '불러오는 중...'; msg.className = 'admin-msg';
-  showLoading(true);
-  try {
-    const results = await sbSelect();
-    if (!results.length) { msg.textContent = '저장된 데이터가 없습니다.'; msg.className = 'admin-msg error'; return; }
-    const headers = [
-      '이름','제출시간','점수','총문항',
-      '문항1(엘리베이터)-답변','문항1-정답여부','문항1-이유',
-      '문항2(회의실)-답변','문항2-정답여부','문항2-이유',
-      '문항3(차-운전기사)-답변','문항3-정답여부','문항3-이유',
-      '문항4(차-직접운전)-답변','문항4-정답여부','문항4-이유',
-      '문항5(레스토랑)-답변','문항5-정답여부','문항5-이유'
-    ];
-    const rows = results.map(r => [
-      `"${r.name}"`, r.submitted_at, r.score, r.total,
-      `"${r.q1_user_order||''}"`, r.q1_correct ? '정답' : '오답', `"${r.q1_reason||''}"`,
-      `"${r.q2_user_order||''}"`, r.q2_correct ? '정답' : '오답', `"${r.q2_reason||''}"`,
-      `"${r.q3_user_order||''}"`, r.q3_correct ? '정답' : '오답', `"${r.q3_reason||''}"`,
-      `"${r.q4_user_order||''}"`, r.q4_correct ? '정답' : '오답', `"${r.q4_reason||''}"`,
-      `"${r.q5_user_order||''}"`, r.q5_correct ? '정답' : '오답', `"${r.q5_reason||''}"`
-    ].join(','));
-    const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `가온그룹_상석퀴즈_${new Date().toLocaleDateString('ko-KR').replace(/\./g,'').replace(/ /g,'-')}.csv`;
-    a.click(); URL.revokeObjectURL(url);
-    msg.textContent = `✓ ${results.length}건 다운로드 완료`; msg.className = 'admin-msg success';
-  } catch(err) {
-    msg.textContent = '다운로드 실패: ' + err.message; msg.className = 'admin-msg error';
-  } finally { showLoading(false); }
-}
+
 
 // ===== TOAST =====
 function showToast(msg) {
@@ -965,6 +1007,7 @@ function showToast(msg) {
 // ===== INIT =====
 document.getElementById('input-name').addEventListener('keydown', e => { if (e.key === 'Enter') startQuiz(); });
 show('screen-name');
+
 </script>
 </body>
 </html>
